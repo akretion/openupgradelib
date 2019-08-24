@@ -25,6 +25,7 @@ import inspect
 import uuid
 import logging as _logging_module
 from datetime import datetime
+
 try:
     from StringIO import StringIO
 except ImportError:
@@ -1241,6 +1242,13 @@ def logged_query(cr, query, args=None, skip_no_result=False):
     log_level = _logging_module.DEBUG
     log_msg = False
     start = datetime.now()
+
+    try:
+        full_query = cr._obj.query.decode()
+    except:
+        full_query = cr.mogrify(query, args).decode()
+    logger.log(log_level, u'start running %s', full_query)
+
     try:
         cr.execute(query, args)
     except (ProgrammingError, IntegrityError):
@@ -1253,6 +1261,10 @@ def logged_query(cr, query, args=None, skip_no_result=False):
                        '%(duration)s running %(full_query)s')
     finally:
         duration = datetime.now() - start
+        if duration.seconds > 3600:
+            log_msg = ('SLOW REQUEST: %(rowcount)d rows affected after '
+                       '%(duration)s running %(full_query)s')
+            log_level = _logging_module.WARNING
         if log_msg:
             try:
                 full_query = tools.ustr(cr._obj.query)
