@@ -205,6 +205,11 @@ def _change_reference_refs_orm(env, model_name, record_ids, target_record_id,
                 not field.store or
                 (model._table, field_name) in exclude_columns):
             continue  # Discard SQL views + invalid fields + non-stored fields
+        # TODO we should keep this in memory
+        if not model.search_count([(field_name, '=like', '%s,%%' % model_name)]):
+            # if there is no reference that point on this model
+            # we can skip directly
+            continue
         expr = ['%s,%s' % (model_name, x) for x in record_ids]
         domain = [(field_name, '=', x) for x in expr]
         domain[0:0] = ['|' for x in range(len(domain) - 1)]
